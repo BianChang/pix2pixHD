@@ -8,15 +8,19 @@ import util.util as util
 from util.visualizer import Visualizer
 from util import html
 import torch
+from data import create_dataset
 
 opt = TestOptions().parse(save=False)
 opt.nThreads = 1   # test code only supports nThreads = 1
-opt.batchSize = 1  # test code only supports batchSize = 1
+opt.batch_size = 1  # test code only supports batchSize = 1
 opt.serial_batches = True  # no shuffle
 opt.no_flip = True  # no flip
 
-data_loader = CreateDataLoader(opt)
-dataset = data_loader.load_data()
+#data_loader = CreateDataLoader(opt)
+#dataset = data_loader.load_data()
+
+dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
+
 visualizer = Visualizer(opt)
 # create website
 web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
@@ -56,10 +60,11 @@ for i, data in enumerate(dataset):
     elif opt.onnx:
         generated = run_onnx(opt.onnx, opt.data_type, minibatch, [data['label'], data['inst']])
     else:        
-        generated = model.inference(data['label'], data['inst'], data['image'])
+        generated = model.inference(data['A'], data['inst'], data['B'])
         
-    visuals = OrderedDict([('input_label', util.tensor2label(data['label'][0], opt.label_nc)),
-                           ('synthesized_image', util.tensor2im(generated.data[0]))])
+    visuals = OrderedDict([('real_A', util.tensor2label(data['A'][0], opt.label_nc)),
+                           ('fake_B', util.tensor2im(generated.data[0])),
+                           ('real_B', util.tensor2im(data['B'][0]))])
     img_path = data['path']
     print('process image... %s' % img_path)
     visualizer.save_images(webpage, visuals, img_path)
